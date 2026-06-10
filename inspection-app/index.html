@@ -248,31 +248,8 @@ canvas{display:none}
 <div class="card">
   <div class="card-title">👥 Section 5 – Citizen Feedback</div>
 
-  <div style="background:#0f172a;border-radius:10px;padding:14px;margin-bottom:12px;border:1px solid #334155">
-    <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:10px">Citizen 1</div>
-    <div class="field"><label>Name</label><input type="text" id="c1name" placeholder="Citizen name"></div>
-    <div class="field"><label>Phone Number</label><input type="tel" id="c1phone" placeholder="Mobile number"></div>
-    <div class="field"><label>Overcharging Comment</label><textarea id="c1overcharge" placeholder="Any overcharging complaint or feedback..."></textarea></div>
-    <div class="field">
-      <label>Rating (1–10)</label>
-      <div class="rating-row">
-        ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<label><input type="radio" name="c1rating" value="${n}"><span>${n}</span></label>`).join('')}
-      </div>
-    </div>
-  </div>
-
-  <div style="background:#0f172a;border-radius:10px;padding:14px;border:1px solid #334155">
-    <div style="font-size:12px;font-weight:700;color:#60a5fa;margin-bottom:10px">Citizen 2</div>
-    <div class="field"><label>Name</label><input type="text" id="c2name" placeholder="Citizen name"></div>
-    <div class="field"><label>Phone Number</label><input type="tel" id="c2phone" placeholder="Mobile number"></div>
-    <div class="field"><label>Overcharging Comment</label><textarea id="c2overcharge" placeholder="Any overcharging complaint or feedback..."></textarea></div>
-    <div class="field">
-      <label>Rating (1–10)</label>
-      <div class="rating-row">
-        ${[1,2,3,4,5,6,7,8,9,10].map(n=>`<label><input type="radio" name="c2rating" value="${n}"><span>${n}</span></label>`).join('')}
-      </div>
-    </div>
-  </div>
+  <div id="citizenList"></div>
+  <button type="button" onclick="addCitizen()" style="width:100%;padding:10px;background:#1e293b;border:1px dashed #334155;border-radius:9px;color:#60a5fa;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">+ Add Citizen</button>
 </div>
 
 <!-- GPS -->
@@ -374,6 +351,15 @@ canvas{display:none}
   </div>
 </div>
 
+<!-- EDM Remarks -->
+<div class="card">
+  <div class="card-title">📝 EDM Remarks</div>
+  <div class="field">
+    <label>EDM Remarks</label>
+    <textarea id="edmRemarks" placeholder="EDM additional remarks, observations..."></textarea>
+  </div>
+</div>
+
 <div class="status-bar" id="statusBar">அனைத்து fields நிரப்பி submit பண்ணவும்</div>
 <button class="submit-btn" id="submitBtn" onclick="submitInspection()">✅ Submit Inspection</button>
 </div>
@@ -469,9 +455,14 @@ function getLocation(){
     try{
       const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
       const d=await r.json();
-      const place=[d.address?.village||d.address?.town||d.address?.city||'',d.address?.state_district||''].filter(Boolean).join(', ');
-      document.getElementById('gpsPlace').value=place;
-      txt.textContent=`📍 ${place}\n${lat}, ${lng}`;
+      const village = d.address?.village || d.address?.town || d.address?.suburb || d.address?.city_district || '';
+      const city = d.address?.city || d.address?.county || d.address?.state_district || '';
+      // Use only ASCII/English characters
+      const cleanVillage = village.replace(/[^a-zA-Z0-9\s,.-]/g, '').trim();
+      const cleanCity = city.replace(/[^a-zA-Z0-9\s,.-]/g, '').trim();
+      const place = [cleanVillage, cleanCity].filter(Boolean).join(', ');
+      document.getElementById('gpsPlace').value=place||`${lat}, ${lng}`;
+      txt.textContent=`📍 ${place||'Located'}\n${lat}, ${lng}`;
       txt.style.color='#22c55e';
     }catch{
       txt.textContent=`${lat}, ${lng}`;
@@ -600,8 +591,13 @@ async function submitInspection(){
       rateCardVisible:getRadio('rateCard'),
       qrCodeWorking:getRadio('qrCode'),
       // Citizen Feedback
-      citizen1:{name:document.getElementById('c1name').value,phone:document.getElementById('c1phone').value,overcharge:document.getElementById('c1overcharge').value,rating:getRadio('c1rating')},
-      citizen2:{name:document.getElementById('c2name').value,phone:document.getElementById('c2phone').value,overcharge:document.getElementById('c2overcharge').value,rating:getRadio('c2rating')},
+      citizens: window._citizens.map(c=>({
+        name: document.getElementById('cn_'+c).value,
+        phone: document.getElementById('cp_'+c).value,
+        overcharge: document.getElementById('co_'+c).value
+      })),
+      // EDM Remarks
+      edmRemarks: document.getElementById('edmRemarks').value,
       // GPS
       lat:document.getElementById('gpsLat').value,
       lng:document.getElementById('gpsLng').value,
@@ -621,7 +617,47 @@ async function submitInspection(){
   }
 }
 
-window.onload=()=>setTimeout(getLocation,500);
+// Citizens dynamic
+window._citizens = [];
+let _cCount = 0;
+
+function addCitizen() {
+  _cCount++;
+  const id = _cCount;
+  window._citizens.push(id);
+  const div = document.createElement('div');
+  div.id = 'citizen_' + id;
+  div.style.cssText = 'background:#0f172a;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #334155';
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:12px;font-weight:700;color:#60a5fa">Citizen ${id}</span>
+      <button onclick="removeCitizen(${id})" style="background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:16px">&#10005;</button>
+    </div>
+    <div class="field"><label>Name</label><input type="text" id="cn_${id}" placeholder="Citizen name"></div>
+    <div class="field"><label>Phone Number</label><input type="tel" id="cp_${id}" placeholder="Mobile number"></div>
+    <div class="field">
+      <label>Overcharging</label>
+      <select id="co_${id}">
+        <option value="">-- Select --</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+    </div>
+  `;
+  document.getElementById('citizenList').appendChild(div);
+}
+
+function removeCitizen(id) {
+  window._citizens = window._citizens.filter(c => c !== id);
+  const el = document.getElementById('citizen_' + id);
+  if(el) el.remove();
+}
+
+// Add first citizen by default
+window.onload=()=>{
+  setTimeout(getLocation,500);
+  addCitizen();
+};
 </script>
 </body>
 </html>
