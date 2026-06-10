@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f172a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>EDM Inspection App</title>
+<link rel="manifest" href="manifest.json">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#f1f5f9;min-height:100vh;padding-bottom:60px}
+header{background:#1e293b;padding:14px 18px;border-bottom:1px solid #334155;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.logo{width:38px;height:38px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+header h1{font-size:16px;font-weight:700;color:#f1f5f9;line-height:1.2}
+header p{font-size:11px;color:#64748b}
+.container{padding:16px;max-width:480px;margin:0 auto}
+.card{background:#1e293b;border-radius:14px;padding:18px;margin-bottom:14px;border:1px solid #334155}
+.card-title{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:#94a3b8;margin-bottom:5px;font-weight:500}
+.field input,.field select,.field textarea{width:100%;background:#0f172a;border:1px solid #334155;border-radius:9px;color:#f1f5f9;font-size:14px;padding:11px 13px;outline:none;transition:border-color 0.2s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:#3b82f6}
+.field input:disabled,.field textarea:disabled{color:#64748b;cursor:not-allowed;opacity:0.7}
+.field textarea{resize:none;min-height:70px}
+.field input::placeholder,.field textarea::placeholder{color:#475569}
+.field select option{background:#1e293b}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.yes-no{display:flex;gap:8px}
+.yes-no label{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:10px;cursor:pointer;font-size:13px;font-weight:500;transition:all 0.2s}
+.yes-no input[type=radio]{display:none}
+.yes-no input[type=radio]:checked + span{color:#22c55e}
+.yes-no label:has(input[type=radio]:checked){border-color:#22c55e;background:#052e16}
+.yes-no label:has(input[value=No]:checked){border-color:#ef4444;background:#450a0a}
+.yes-no label:has(input[value=No]:checked) span{color:#ef4444}
+
+.autocomplete-wrap{position:relative}
+.autocomplete-list{position:absolute;top:100%;left:0;right:0;background:#1e293b;border:1px solid #3b82f6;border-radius:9px;max-height:200px;overflow-y:auto;z-index:200;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.autocomplete-list.show{display:block}
+.autocomplete-item{padding:10px 13px;font-size:13px;cursor:pointer;border-bottom:1px solid #334155}
+.autocomplete-item:last-child{border-bottom:none}
+.autocomplete-item:hover{background:#1d4ed8}
+.autocomplete-item .sub{font-size:11px;color:#94a3b8;margin-top:2px}
+
+.rating-row{display:flex;gap:6px;flex-wrap:wrap}
+.rating-row label{width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:#0f172a;border:1px solid #334155;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:all 0.2s}
+.rating-row input[type=radio]{display:none}
+.rating-row label:has(input:checked){background:#1d4ed8;border-color:#3b82f6;color:#fff}
+
+.gps-row{display:flex;align-items:center;gap:10px;background:#0f172a;border:1px solid #334155;border-radius:9px;padding:11px 13px}
+.gps-text{flex:1;font-size:12px;color:#94a3b8;line-height:1.4}
+.gps-btn{background:#1d4ed8;color:#fff;border:none;border-radius:7px;padding:7px 12px;font-size:12px;cursor:pointer;font-weight:600;white-space:nowrap}
+
+.photo-section{margin-bottom:14px}
+.photo-label{font-size:12px;color:#94a3b8;margin-bottom:6px;font-weight:500;display:flex;align-items:center;gap:6px}
+.req-badge{background:#7c3aed;color:#e9d5ff;font-size:10px;padding:2px 7px;border-radius:5px}
+.camera-box{width:100%;aspect-ratio:4/3;background:#0f172a;border-radius:10px;border:2px dashed #334155;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer}
+.camera-box video{width:100%;height:100%;object-fit:cover;border-radius:8px;display:none}
+.cam-ph{display:flex;flex-direction:column;align-items:center;gap:6px;color:#475569}
+.cam-ph .icon{font-size:32px}
+.cam-ph p{font-size:12px}
+.photo-preview{width:100%;aspect-ratio:4/3;border-radius:10px;object-fit:cover;display:none;border:2px solid #22c55e}
+.photo-preview.visible{display:block}
+.cam-controls{display:flex;gap:8px;margin-top:8px}
+.btn{flex:1;padding:11px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+.btn-capture{background:#22c55e;color:#fff}
+.btn-cancel{background:#334155;color:#94a3b8}
+.btn-retake{background:#334155;color:#94a3b8;flex:0.6}
+.photo-ok{flex:1;display:flex;align-items:center;justify-content:center;color:#22c55e;font-size:12px;font-weight:700}
+canvas{display:none}
+
+.sig-upload{background:#0f172a;border:2px dashed #334155;border-radius:10px;padding:20px;text-align:center;cursor:pointer;position:relative}
+.sig-upload input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.sig-upload img{max-height:80px;margin-top:8px}
+.sig-preview{display:none}
+.sig-preview.visible{display:block}
+
+.status-bar{background:#0f172a;border-radius:9px;padding:11px;font-size:12px;color:#64748b;text-align:center;margin-top:8px;min-height:38px;display:flex;align-items:center;justify-content:center}
+.status-bar.success{color:#22c55e;background:#052e16}
+.status-bar.error{color:#ef4444;background:#450a0a}
+.status-bar.loading{color:#60a5fa}
+.submit-btn{width:100%;padding:15px;background:#3b82f6;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;margin-top:4px}
+.submit-btn:disabled{opacity:0.4;cursor:not-allowed}
+.divider{border:none;border-top:1px solid #334155;margin:12px 0}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🔍</div>
+  <div>
+    <h1>EDM Inspection App</h1>
+    <p>e-Sevai Centre Inspection Checklist</p>
+  </div>
+</header>
+<div class="container">
+
+<!-- PART A: Centre Identification -->
+<div class="card">
+  <div class="card-title">📋 PART A – Centre Identification</div>
+
+  <div class="row2">
+    <div class="field">
+      <label>Date of Inspection</label>
+      <input type="date" id="inspDate" readonly>
+    </div>
+    <div class="field">
+      <label>Type of Inspection *</label>
+      <select id="inspType" onchange="onInspTypeChange()">
+        <option value="">-- Select --</option>
+        <option>Routine</option>
+        <option>Complaint-Based</option>
+        <option>Surprise</option>
+        <option>Follow-up</option>
+        <option>Zero Transaction Blocked ID</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="field" id="prevDateField" style="display:none">
+    <label>Follow-up Previous Date</label>
+    <input type="date" id="prevDate">
+  </div>
+
+  <hr class="divider">
+
+  <div class="field">
+    <label>EDM District *</label>
+    <select id="edmDist" onchange="onEdmDistChange()">
+      <option value="">-- District Select --</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>EDM Name *</label>
+    <select id="edmName" onchange="onEdmNameChange()" disabled>
+      <option value="">-- EDM Name Select --</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>EDM Mobile No</label>
+    <input type="tel" id="edmMobile" disabled placeholder="Auto fill">
+  </div>
+
+  <hr class="divider">
+
+  <div class="field">
+    <label>Esevai Centre Name * (தட்டச்சு செய்யவும்)</label>
+    <div class="autocomplete-wrap">
+      <input type="text" id="opSearch" placeholder="Operator name search..." autocomplete="off" oninput="searchOperator(this.value)" onfocus="searchOperator(this.value)">
+      <div class="autocomplete-list" id="opList"></div>
+    </div>
+  </div>
+  <div class="row2">
+    <div class="field"><label>Esevai ID</label><input type="text" id="esevaiId" disabled placeholder="Auto fill"></div>
+    <div class="field"><label>Mobile No</label><input type="tel" id="opMobile" disabled placeholder="Auto fill"></div>
+  </div>
+  <div class="field"><label>Centre Address</label><textarea id="opAddress" disabled placeholder="Auto fill"></textarea></div>
+  <div class="field"><label>Taluk</label><input type="text" id="opTaluk" disabled placeholder="Auto fill"></div>
+</div>
+
+<!-- Section 1: Operations -->
+<div class="card">
+  <div class="card-title">🏪 Section 1 – Centre Operations & Staffing</div>
+
+  <div class="field">
+    <label>1. Working Hours Notice Displayed?</label>
+    <div class="yes-no">
+      <label><input type="radio" name="workHours" value="Yes"><span>✓ Yes</span></label>
+      <label><input type="radio" name="workHours" value="No"><span>✗ No</span></label>
+    </div>
+  </div>
+  <div class="field">
+    <label>Working Hours (e.g. 9AM - 5PM)</label>
+    <input type="text" id="workHoursText" placeholder="e.g. 9:00 AM – 5:00 PM">
+  </div>
+  <div class="field">
+    <label>No. of Citizens Present</label>
+    <input type="number" id="citizenCount" placeholder="e.g. 3" min="0">
+  </div>
+  <div class="field">
+    <label>2. Operator Present?</label>
+    <div class="yes-no">
+      <label><input type="radio" name="opPresent" value="Yes"><span>✓ Yes</span></label>
+      <label><input type="radio" name="opPresent" value="No"><span>✗ No</span></label>
+    </div>
+  </div>
+  <div class="field">
+    <label>3. Identity Verified?</label>
+    <div class="yes-no">
+      <label><input type="radio" name="idVerified" value="Yes"><span>✓ Yes</span></label>
+      <label><input type="radio" name="idVerified" value="No"><span>✗ No</span></label>
+    </div>
+  </div>
+</div>
+
+<!-- Section 2: Infrastructure -->
+<div class="card">
+  <div class="card-title">💻 Section 2 – Infrastructure & Equipment</div>
+
+  <div class="field">
+    <label>4. Internet Connectivity Observation</label>
+    <textarea id="internetObs" placeholder="e.g. Internet available, speed appears adequate (>2 Mbps)..."></textarea>
+  </div>
+  <div class="field">
+    <label>5. Printer & Scanner Available?</label>
+    <div class="yes-no">
+      <label><input type="radio" name="printer" value="Yes"><span>✓ Yes</span></label>
+      <label><input type="radio" name="printer" value="No"><span>✗ No</span></label>
+    </div>
+  </div>
+  <div class="field">
+    <label>6. Premises Exclusively for e-Sevai?</label>
+    <div class="yes-no">
+      <label><input type="radio" name="premises" value="Yes"><span>✓ Yes</span></label>
+      <label><input type="radio" name="premises" value="No"><span>✗ No</span></label>
+    </div>
+  </div>
+</div>
+
+<!-- Section 3: Display Boards -->
+<div class="card">
+  <div class="card-title">📌 Section 3 – Citizen Transparency & Display</div>
+
+  <div class="field">
+    <label>7. Name Board Displayed?</label>
+    <div class="yes-no">
+      <label><input type="radio" name="nameBoard" value="Yes"><span>✓ Yes</span></label>
+      <label><input type="radio" name="nameBoard" value="No"><span>✗ No</span></label>
+    </div>
+  </div>
+  <div class="field">
+    <label>8. Service Charges / Rate Card Visible?</label>
+    <div class="yes-no">
+      <label><input type="radio" name="rateCard" value="Yes"><span>✓ Yes</span></label>
+      <label><input type="radio" name="rateCard" value="No"><span>✗ No</span></label>
+    </div>
+  </div>
+  <div class="field">
+    <label>9. QR Code Available & Working?</label>
+    <div class="yes-no">
+      <label><input type="radio" name="qrCode" value="Yes"><span>✓ Yes</span></label>
+      <label><input type="radio" name="qrCode" value="No"><span>✗ No</span></label>
+    </div>
+  </div>
+</div>
+
+<!-- Section 5: Citizen Feedback -->
+<div class="card">
+  <div class="card-title">👥 Section 5 – Citizen Feedback</div>
+
+  <div id="citizenList"></div>
+  <button type="button" onclick="addCitizen()" style="width:100%;padding:10px;background:#1e293b;border:1px dashed #334155;border-radius:9px;color:#60a5fa;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px">+ Add Citizen</button>
+</div>
+
+<!-- GPS -->
+<div class="card">
+  <div class="card-title">📍 Live GPS Location</div>
+  <div class="gps-row">
+    <span style="font-size:16px">📍</span>
+    <div class="gps-text" id="gpsText">Location பெறவில்லை</div>
+    <button class="gps-btn" onclick="getLocation()">GPS பெறு</button>
+  </div>
+  <input type="hidden" id="gpsLat">
+  <input type="hidden" id="gpsLng">
+  <input type="hidden" id="gpsPlace">
+</div>
+
+<!-- Photos -->
+<div class="card">
+  <div class="card-title">📷 Inspection Photos</div>
+  <div class="photo-section">
+    <div class="photo-label">Photo 1 – Shop / Centre <span class="req-badge">Required</span></div>
+    <div class="camera-box" id="box1" onclick="startCam(1)">
+      <div class="cam-ph" id="ph1"><div class="icon">🏪</div><p>Tap to capture</p></div>
+      <video id="vid1" autoplay playsinline></video>
+    </div>
+    <img id="prev1" class="photo-preview" alt="Shop">
+    <canvas id="canvas1"></canvas>
+    <div class="cam-controls" id="ctrl1" style="display:none">
+      <button class="btn btn-capture" onclick="capture(1)">📸 Capture</button>
+      <button class="btn btn-cancel" onclick="stopCam(1)">✕</button>
+    </div>
+    <div class="cam-controls" id="retake1" style="display:none">
+      <button class="btn btn-retake" onclick="retake(1)">🔄 Retake</button>
+      <div class="photo-ok">✓ Photo 1 OK</div>
+    </div>
+  </div>
+
+  <div class="photo-section">
+    <div class="photo-label">Photo 2 – Rate Chart <span class="req-badge">Required</span></div>
+    <div class="camera-box" id="box2" onclick="startCam(2)">
+      <div class="cam-ph" id="ph2"><div class="icon">📋</div><p>Tap to capture</p></div>
+      <video id="vid2" autoplay playsinline></video>
+    </div>
+    <img id="prev2" class="photo-preview" alt="Rate Chart">
+    <canvas id="canvas2"></canvas>
+    <div class="cam-controls" id="ctrl2" style="display:none">
+      <button class="btn btn-capture" onclick="capture(2)">📸 Capture</button>
+      <button class="btn btn-cancel" onclick="stopCam(2)">✕</button>
+    </div>
+    <div class="cam-controls" id="retake2" style="display:none">
+      <button class="btn btn-retake" onclick="retake(2)">🔄 Retake</button>
+      <div class="photo-ok">✓ Photo 2 OK</div>
+    </div>
+  </div>
+
+  <div class="photo-section">
+    <div class="photo-label">Photo 3 – Computer / Printer <span class="req-badge">Required</span></div>
+    <div class="camera-box" id="box3" onclick="startCam(3)">
+      <div class="cam-ph" id="ph3"><div class="icon">💻</div><p>Tap to capture</p></div>
+      <video id="vid3" autoplay playsinline></video>
+    </div>
+    <img id="prev3" class="photo-preview" alt="Computer">
+    <canvas id="canvas3"></canvas>
+    <div class="cam-controls" id="ctrl3" style="display:none">
+      <button class="btn btn-capture" onclick="capture(3)">📸 Capture</button>
+      <button class="btn btn-cancel" onclick="stopCam(3)">✕</button>
+    </div>
+    <div class="cam-controls" id="retake3" style="display:none">
+      <button class="btn btn-retake" onclick="retake(3)">🔄 Retake</button>
+      <div class="photo-ok">✓ Photo 3 OK</div>
+    </div>
+  </div>
+</div>
+
+<!-- PART B Summary -->
+<div class="card">
+  <div class="card-title">📊 PART B – eDM Summary</div>
+  <div class="field">
+    <label>Overall Compliance *</label>
+    <select id="compliance">
+      <option value="">-- Select --</option>
+      <option>Compliant</option>
+      <option>Partially Compliant</option>
+      <option>Non-Compliant</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Key Deficiencies Found</label>
+    <textarea id="deficiencies" placeholder="Describe key deficiencies found during inspection..."></textarea>
+  </div>
+</div>
+
+<!-- EDM Signature -->
+<div class="card">
+  <div class="card-title">✍️ EDM Signature</div>
+  <div class="sig-upload" id="sigBox">
+    <input type="file" id="sigFile" accept="image/*" onchange="loadSig(this)">
+    <div style="color:#64748b;font-size:13px">📁 Signature image upload பண்ணவும்</div>
+    <img id="sigImg" class="sig-preview" alt="Signature">
+  </div>
+</div>
+
+<!-- EDM Remarks -->
+<div class="card">
+  <div class="card-title">📝 EDM Remarks</div>
+  <div class="field">
+    <label>EDM Remarks</label>
+    <textarea id="edmRemarks" placeholder="EDM additional remarks, observations..."></textarea>
+  </div>
+</div>
+
+<div class="status-bar" id="statusBar">அனைத்து fields நிரப்பி submit பண்ணவும்</div>
+<button class="submit-btn" id="submitBtn" onclick="submitInspection()">✅ Submit Inspection</button>
+</div>
+
+<script src="data.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyBqBbMptc6YUylwnyiLK_NB0TJ7CTIVzf4",
+  authDomain: "edm-inspection.firebaseapp.com",
+  projectId: "edm-inspection",
+  storageBucket: "edm-inspection.firebasestorage.app",
+  messagingSenderId: "152254074581",
+  appId: "1:152254074581:web:73c9d580456f14d2761c5c"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+window._db=db; window._collection=collection; window._addDoc=addDoc; window._serverTimestamp=serverTimestamp;
+</script>
+
+<script>
+// Auto date
+const today = new Date();
+document.getElementById('inspDate').value = today.toISOString().split('T')[0];
+
+// Type of Inspection
+function onInspTypeChange(){
+  const v = document.getElementById('inspType').value;
+  document.getElementById('prevDateField').style.display = v==='Follow-up' ? 'block' : 'none';
+}
+
+// EDM Dropdowns
+const distSet=[...new Set(EDM_DATA.map(e=>e.dist))].sort();
+const edmDistEl=document.getElementById('edmDist');
+distSet.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;edmDistEl.appendChild(o);});
+
+function onEdmDistChange(){
+  const dist=edmDistEl.value;
+  const nameEl=document.getElementById('edmName');
+  nameEl.innerHTML='<option value="">-- EDM Name Select --</option>';
+  document.getElementById('edmMobile').value='';
+  if(!dist){nameEl.disabled=true;return;}
+  nameEl.disabled=false;
+  EDM_DATA.filter(e=>e.dist===dist).forEach(e=>{
+    const o=document.createElement('option');o.value=e.name;o.dataset.mobile=e.mobile;o.textContent=e.name;nameEl.appendChild(o);
+  });
+}
+function onEdmNameChange(){
+  const sel=document.getElementById('edmName');
+  const opt=sel.options[sel.selectedIndex];
+  document.getElementById('edmMobile').value=opt?.dataset?.mobile||'';
+}
+
+// Operator Search
+let selectedOp=null;
+function searchOperator(q){
+  const list=document.getElementById('opList');
+  if(!q||q.length<2){list.classList.remove('show');return;}
+  const results=OPERATORS_DATA.filter(o=>
+    o.name.toLowerCase().includes(q.toLowerCase())||o.esevaiId.toLowerCase().includes(q.toLowerCase())
+  ).slice(0,15);
+  if(!results.length){list.classList.remove('show');return;}
+  list.innerHTML=results.map(o=>`
+    <div class="autocomplete-item" onclick="selectOperator(${OPERATORS_DATA.indexOf(o)})">
+      <div>${o.name}</div>
+      <div class="sub">${o.esevaiId} · ${o.taluk}</div>
+    </div>`).join('');
+  list.classList.add('show');
+}
+function selectOperator(idx){
+  selectedOp=OPERATORS_DATA[idx];
+  document.getElementById('opSearch').value=selectedOp.name;
+  document.getElementById('esevaiId').value=selectedOp.esevaiId;
+  document.getElementById('opMobile').value=selectedOp.mobile;
+  document.getElementById('opAddress').value=selectedOp.address;
+  document.getElementById('opTaluk').value=selectedOp.taluk;
+  document.getElementById('opList').classList.remove('show');
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.autocomplete-wrap'))document.getElementById('opList').classList.remove('show');
+});
+
+// GPS
+function getLocation(){
+  const txt=document.getElementById('gpsText');
+  txt.textContent='GPS பெறுகிறோம்...';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const lat=pos.coords.latitude.toFixed(6);
+    const lng=pos.coords.longitude.toFixed(6);
+    document.getElementById('gpsLat').value=lat;
+    document.getElementById('gpsLng').value=lng;
+    try{
+      const r=await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+      const d=await r.json();
+      const village = d.address?.village || d.address?.town || d.address?.suburb || d.address?.city_district || '';
+      const city = d.address?.city || d.address?.county || d.address?.state_district || '';
+      // Use only ASCII/English characters
+      const cleanVillage = village.replace(/[^a-zA-Z0-9\s,.-]/g, '').trim();
+      const cleanCity = city.replace(/[^a-zA-Z0-9\s,.-]/g, '').trim();
+      const place = [cleanVillage, cleanCity].filter(Boolean).join(', ');
+      document.getElementById('gpsPlace').value=place||`${lat}, ${lng}`;
+      txt.textContent=`📍 ${place||'Located'}\n${lat}, ${lng}`;
+      txt.style.color='#22c55e';
+    }catch{
+      txt.textContent=`${lat}, ${lng}`;
+      txt.style.color='#22c55e';
+    }
+  },()=>{txt.textContent='Location கிடைக்கவில்லை';txt.style.color='#ef4444';},{enableHighAccuracy:true,timeout:15000});
+}
+
+// Camera
+const streams={},photos={};
+async function startCam(n){
+  if(photos[n])return;
+  Object.keys(streams).forEach(k=>{if(k!=n)stopCam(k);});
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+    streams[n]=s;
+    const vid=document.getElementById(`vid${n}`);
+    vid.srcObject=s;vid.style.display='block';
+    document.getElementById(`ph${n}`).style.display='none';
+    document.getElementById(`ctrl${n}`).style.display='flex';
+  }catch{alert('Camera permission வேண்டும்.');}
+}
+function capture(n){
+  const vid=document.getElementById(`vid${n}`);
+  const canvas=document.getElementById(`canvas${n}`);
+  const prev=document.getElementById(`prev${n}`);
+  canvas.width=vid.videoWidth;canvas.height=vid.videoHeight;
+  canvas.getContext('2d').drawImage(vid,0,0);
+  const tmp=document.createElement('canvas');
+  const r=Math.min(1024/canvas.width,1);
+  tmp.width=canvas.width*r;tmp.height=canvas.height*r;
+  tmp.getContext('2d').drawImage(canvas,0,0,tmp.width,tmp.height);
+  photos[n]=tmp.toDataURL('image/jpeg',0.7);
+  prev.src=photos[n];prev.classList.add('visible');
+  vid.style.display='none';stopStream(n);
+  document.getElementById(`ctrl${n}`).style.display='none';
+  document.getElementById(`retake${n}`).style.display='flex';
+  document.getElementById(`box${n}`).style.cursor='default';
+}
+function retake(n){
+  delete photos[n];
+  document.getElementById(`prev${n}`).classList.remove('visible');
+  document.getElementById(`retake${n}`).style.display='none';
+  document.getElementById(`ph${n}`).style.display='flex';
+  document.getElementById(`box${n}`).style.cursor='pointer';
+  startCam(n);
+}
+function stopCam(n){
+  stopStream(n);
+  const vid=document.getElementById(`vid${n}`);
+  if(vid)vid.style.display='none';
+  const ph=document.getElementById(`ph${n}`);
+  if(ph)ph.style.display='flex';
+  const ctrl=document.getElementById(`ctrl${n}`);
+  if(ctrl)ctrl.style.display='none';
+}
+function stopStream(n){if(streams[n]){streams[n].getTracks().forEach(t=>t.stop());delete streams[n];}}
+
+// Signature
+let sigDataURL = 'edm_signature.png'; // default pre-loaded
+function loadSig(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    sigDataURL=e.target.result;
+    document.getElementById('sigImg').src=sigDataURL;
+    document.getElementById('sigImg').classList.add('visible');
+  };
+  reader.readAsDataURL(file);
+}
+
+// Radio helper
+function getRadio(name){
+  const el=document.querySelector(`input[name="${name}"]:checked`);
+  return el?el.value:'';
+}
+
+// Status
+function setStatus(msg,type=''){
+  const el=document.getElementById('statusBar');
+  el.textContent=msg;el.className='status-bar '+type;
+}
+
+// Submit
+async function submitInspection(){
+  const inspType=document.getElementById('inspType').value;
+  const edmDist=document.getElementById('edmDist').value;
+  const edmName=document.getElementById('edmName').value;
+  const compliance=document.getElementById('compliance').value;
+
+  if(!inspType){setStatus('⚠️ Type of Inspection select பண்ணவும்','error');return;}
+  if(!edmDist||!edmName){setStatus('⚠️ EDM District & Name select பண்ணவும்','error');return;}
+  if(!selectedOp){setStatus('⚠️ Esevai Centre select பண்ணவும்','error');return;}
+  if(!document.getElementById('gpsLat').value){setStatus('⚠️ GPS location பெறவும்','error');return;}
+  if(!photos[1]||!photos[2]||!photos[3]){setStatus('⚠️ 3 photos எடுக்கவும்','error');return;}
+  if(!compliance){setStatus('⚠️ Overall Compliance select பண்ணவும்','error');return;}
+
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;
+  setStatus('Submitting...','loading');
+
+  try{
+    await window._addDoc(window._collection(window._db,'inspections'),{
+      // Part A
+      inspDate: document.getElementById('inspDate').value,
+      inspType,
+      prevDate: document.getElementById('prevDate').value||null,
+      // EDM
+      edmDistrict:edmDist, edmName, edmMobile:document.getElementById('edmMobile').value,
+      // Operator
+      esevaiId:selectedOp.esevaiId, operatorName:selectedOp.name,
+      operatorMobile:selectedOp.mobile, operatorAddress:selectedOp.address,
+      taluk:selectedOp.taluk, district:selectedOp.district,
+      // Section 1
+      workHoursDisplayed:getRadio('workHours'),
+      workHoursText:document.getElementById('workHoursText').value,
+      citizenCount:document.getElementById('citizenCount').value,
+      operatorPresent:getRadio('opPresent'),
+      identityVerified:getRadio('idVerified'),
+      // Section 2
+      internetObs:document.getElementById('internetObs').value,
+      printerAvailable:getRadio('printer'),
+      premisesExclusive:getRadio('premises'),
+      // Section 3
+      nameBoardDisplayed:getRadio('nameBoard'),
+      rateCardVisible:getRadio('rateCard'),
+      qrCodeWorking:getRadio('qrCode'),
+      // Citizen Feedback
+      citizens: window._citizens.map(c=>({
+        name: document.getElementById('cn_'+c).value,
+        phone: document.getElementById('cp_'+c).value,
+        overcharge: document.getElementById('co_'+c).value
+      })),
+      // EDM Remarks
+      edmRemarks: document.getElementById('edmRemarks').value,
+      // GPS
+      lat:document.getElementById('gpsLat').value,
+      lng:document.getElementById('gpsLng').value,
+      gpsPlace:document.getElementById('gpsPlace').value,
+      // Part B
+      compliance, deficiencies:document.getElementById('deficiencies').value,
+      // Photos
+      photo1_shop:photos[1], photo2_ratechart:photos[2], photo3_computer:photos[3],
+      status:'submitted',
+      timestamp:window._serverTimestamp()
+    });
+    setStatus('✅ Inspection submitted successfully!','success');
+    setTimeout(()=>{if(confirm('Submitted! மற்றொரு inspection செய்யவா?'))location.reload();},1500);
+  }catch(err){
+    setStatus('❌ Error: '+err.message,'error');
+    btn.disabled=false;
+  }
+}
+
+// Citizens dynamic
+window._citizens = [];
+let _cCount = 0;
+
+function addCitizen() {
+  _cCount++;
+  const id = _cCount;
+  window._citizens.push(id);
+  const div = document.createElement('div');
+  div.id = 'citizen_' + id;
+  div.style.cssText = 'background:#0f172a;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #334155';
+  div.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span style="font-size:12px;font-weight:700;color:#60a5fa">Citizen ${id}</span>
+      <button onclick="removeCitizen(${id})" style="background:transparent;border:none;color:#ef4444;cursor:pointer;font-size:16px">&#10005;</button>
+    </div>
+    <div class="field"><label>Name</label><input type="text" id="cn_${id}" placeholder="Citizen name"></div>
+    <div class="field"><label>Phone Number</label><input type="tel" id="cp_${id}" placeholder="Mobile number"></div>
+    <div class="field">
+      <label>Overcharging</label>
+      <select id="co_${id}">
+        <option value="">-- Select --</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+    </div>
+  `;
+  document.getElementById('citizenList').appendChild(div);
+}
+
+function removeCitizen(id) {
+  window._citizens = window._citizens.filter(c => c !== id);
+  const el = document.getElementById('citizen_' + id);
+  if(el) el.remove();
+}
+
+// Add first citizen by default
+window.onload=()=>{
+  setTimeout(getLocation,500);
+  addCitizen();
+};
+</script>
+</body>
+</html>
